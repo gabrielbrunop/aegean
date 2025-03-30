@@ -862,7 +862,7 @@ impl<S: Span> Report<'_, S> {
                         write_margin(&mut w, 0, false, false, true, Some((0, false)), &[], &None)?;
                         writeln!(w)?;
                     }
-                    let help_prefix = format!("{} {}", "Help", i + 1);
+                    let help_prefix = format!("{} {}", self.config.prefixes.help, i + 1);
                     let help_prefix_len = if self.help.len() > 1 {
                         help_prefix.len()
                     } else {
@@ -879,7 +879,12 @@ impl<S: Span> Report<'_, S> {
                                 line
                             )?;
                         } else {
-                            writeln!(w, "{}: {}", "Help".fg(self.config.note_color(), s), line)?;
+                            writeln!(
+                                w,
+                                "{}: {}",
+                                self.config.prefixes.help.fg(self.config.note_color(), s),
+                                line
+                            )?;
                         }
                     }
                     for line in lines {
@@ -896,7 +901,7 @@ impl<S: Span> Report<'_, S> {
                         write_margin(&mut w, 0, false, false, true, Some((0, false)), &[], &None)?;
                         writeln!(w)?;
                     }
-                    let note_prefix = format!("{} {}", "Note", i + 1);
+                    let note_prefix = format!("{} {}", self.config.prefixes.note, i + 1);
                     let note_prefix_len = if self.notes.len() > 1 {
                         note_prefix.len()
                     } else {
@@ -913,7 +918,12 @@ impl<S: Span> Report<'_, S> {
                                 line
                             )?;
                         } else {
-                            writeln!(w, "{}: {}", "Note".fg(self.config.note_color(), s), line)?;
+                            writeln!(
+                                w,
+                                "{}: {}",
+                                self.config.prefixes.note.fg(self.config.note_color(), s),
+                                line
+                            )?;
                         }
                     }
                     for line in lines {

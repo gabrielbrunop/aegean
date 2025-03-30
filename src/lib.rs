@@ -21,8 +21,7 @@ use std::{
     fmt,
     hash::Hash,
     io::{self, Write},
-    ops::Range,
-    ops::RangeInclusive,
+    ops::{Range, RangeInclusive},
 };
 use unicode_width::UnicodeWidthChar;
 
@@ -443,6 +442,43 @@ pub enum IndexType {
     Char,
 }
 
+/// A type used to configure the prefixes of a report
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct Prefixes {
+    help: &'static str,
+    note: &'static str,
+}
+
+impl Prefixes {
+    /// Create a new [`Prefixes`] with the given help and note prefixes.
+    pub const fn new() -> Self {
+        Prefixes {
+            help: "Help",
+            note: "Note",
+        }
+    }
+}
+
+impl Default for Prefixes {
+    fn default() -> Self {
+        Prefixes::new()
+    }
+}
+
+impl Prefixes {
+    /// Set the help prefix.
+    pub const fn with_help(mut self, help: &'static str) -> Self {
+        self.help = help;
+        self
+    }
+
+    /// Set the note prefix.
+    pub const fn with_note(mut self, note: &'static str) -> Self {
+        self.note = note;
+        self
+    }
+}
+
 /// A type used to configure a report
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Config {
@@ -455,6 +491,7 @@ pub struct Config {
     tab_width: usize,
     char_set: CharSet,
     index_type: IndexType,
+    prefixes: Prefixes,
 }
 
 impl Config {
@@ -523,6 +560,13 @@ impl Config {
         self.index_type = index_type;
         self
     }
+    /// What prefixes should be used for help and note messages?
+    ///     
+    /// /// If unspecified, this defaults to `"Help"` and `"Note"`.
+    pub const fn with_prefixes(mut self, prefixes: Prefixes) -> Self {
+        self.prefixes = prefixes;
+        self
+    }
 
     fn error_color(&self) -> Option<Color> {
         Some(Color::Red).filter(|_| self.color)
@@ -574,6 +618,7 @@ impl Config {
             tab_width: 4,
             char_set: CharSet::Unicode,
             index_type: IndexType::Char,
+            prefixes: Prefixes::new(),
         }
     }
 }
