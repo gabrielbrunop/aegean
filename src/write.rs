@@ -882,7 +882,8 @@ impl<S: Span> Report<'_, S> {
                             writeln!(
                                 w,
                                 "{}: {}",
-                                help_prefix.fg(self.config.note_color(), s),
+                                draw::StreamAwareFmt::fg(help_prefix, self.config.note_color(), s)
+                                    .bold(),
                                 line
                             )?;
                         } else {
@@ -926,7 +927,8 @@ impl<S: Span> Report<'_, S> {
                             writeln!(
                                 w,
                                 "{}: {}",
-                                note_prefix.fg(self.config.note_color(), s),
+                                draw::StreamAwareFmt::fg(note_prefix, self.config.note_color(), s)
+                                    .bold(),
                                 line
                             )?;
                         } else {
