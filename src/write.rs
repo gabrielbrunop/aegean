@@ -1,6 +1,8 @@
 use std::io;
 use std::ops::Range;
 
+use yansi::Paint;
+
 use crate::{IndexType, LabelDisplay};
 
 use super::draw::{self, StreamAwareFmt, StreamType};
@@ -177,7 +179,12 @@ impl<S: Span> Report<'_, S> {
             ReportKind::Advice => self.config.advice_color(),
             ReportKind::Custom(_, color) => Some(color),
         };
-        writeln!(w, "{} {}", id.fg(kind_color, s), Show(self.msg.as_ref()))?;
+        writeln!(
+            w,
+            "{} {}",
+            id.fg(kind_color, s).bold(),
+            Show(self.msg.as_ref())
+        )?;
 
         let groups = self.get_source_groups(&mut cache);
 
@@ -882,7 +889,12 @@ impl<S: Span> Report<'_, S> {
                             writeln!(
                                 w,
                                 "{}: {}",
-                                self.config.prefixes.help.fg(self.config.note_color(), s),
+                                draw::StreamAwareFmt::fg(
+                                    self.config.prefixes.help,
+                                    self.config.note_color(),
+                                    s
+                                )
+                                .bold(),
                                 line
                             )?;
                         }
@@ -921,7 +933,12 @@ impl<S: Span> Report<'_, S> {
                             writeln!(
                                 w,
                                 "{}: {}",
-                                self.config.prefixes.note.fg(self.config.note_color(), s),
+                                draw::StreamAwareFmt::fg(
+                                    self.config.prefixes.note,
+                                    self.config.note_color(),
+                                    s
+                                )
+                                .bold(),
                                 line
                             )?;
                         }
