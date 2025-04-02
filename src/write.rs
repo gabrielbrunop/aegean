@@ -867,42 +867,46 @@ impl<S: Span> Report<'_, S> {
                 }
 
                 for frame in self.stacktrace.iter() {
-                    let file_name_and_ref = {
-                        let location = if src_id == frame.location.source() {
-                            frame.location.start()
-                        } else {
-                            labels[0].char_span.start
-                        };
+                    let file_name_and_ref = match &frame.location {
+                        None => "<unknown>".to_string(),
+                        Some(location) => {
+                            let location = if src_id == location.source() {
+                                location.start()
+                            } else {
+                                labels[0].char_span.start
+                            };
 
-                        let line_and_col = match self.config.index_type {
-                            IndexType::Char => src.get_offset_line(location),
-                            IndexType::Byte => {
-                                src.get_byte_line(location).map(|(line_obj, idx, col)| {
-                                    let line_text = src.get_line_text(line_obj).unwrap();
-                                    let col = line_text[..col.min(line_text.len())].chars().count();
+                            let line_and_col = match self.config.index_type {
+                                IndexType::Char => src.get_offset_line(location),
+                                IndexType::Byte => {
+                                    src.get_byte_line(location).map(|(line_obj, idx, col)| {
+                                        let line_text = src.get_line_text(line_obj).unwrap();
+                                        let col =
+                                            line_text[..col.min(line_text.len())].chars().count();
 
-                                    (line_obj, idx, col)
+                                        (line_obj, idx, col)
+                                    })
+                                }
+                            };
+
+                            let (line_no, col_no) = line_and_col
+                                .map(|(_, idx, col)| {
+                                    (
+                                        format!("{}", idx + 1 + src.display_line_offset()),
+                                        format!("{}", col + 1),
+                                    )
                                 })
-                            }
-                        };
+                                .unwrap_or_else(|| ('?'.to_string(), '?'.to_string()));
 
-                        let (line_no, col_no) = line_and_col
-                            .map(|(_, idx, col)| {
-                                (
-                                    format!("{}", idx + 1 + src.display_line_offset()),
-                                    format!("{}", col + 1),
-                                )
-                            })
-                            .unwrap_or_else(|| ('?'.to_string(), '?'.to_string()));
+                            let line_ref = format!("{}:{}:{}", src_name, line_no, col_no);
 
-                        let line_ref = format!("{}:{}:{}", src_name, line_no, col_no);
-
-                        format!(
-                            "{} {} {}",
-                            draw.lbox.fg(self.config.margin_color(), s),
-                            line_ref,
-                            draw.rbox.fg(self.config.margin_color(), s),
-                        )
+                            format!(
+                                "{} {} {}",
+                                draw.lbox.fg(self.config.margin_color(), s),
+                                line_ref,
+                                draw.rbox.fg(self.config.margin_color(), s),
+                            )
+                        }
                     };
 
                     write_margin(&mut w, 0, false, false, true, Some((0, false)), &[], &None)?;

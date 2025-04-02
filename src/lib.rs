@@ -454,30 +454,32 @@ pub enum IndexType {
 
 /// A type used to configure the prefixes of a report
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct Prefixes {
+pub struct Localization {
     help: &'static str,
     note: &'static str,
     stacktrace: &'static str,
+    unknown: &'static str,
 }
 
-impl Prefixes {
+impl Localization {
     /// Create a new [`Prefixes`] with the given help and note prefixes.
     pub const fn new() -> Self {
-        Prefixes {
+        Localization {
             help: "Help",
             note: "Note",
             stacktrace: "In",
+            unknown: "unknown",
         }
     }
 }
 
-impl Default for Prefixes {
+impl Default for Localization {
     fn default() -> Self {
-        Prefixes::new()
+        Localization::new()
     }
 }
 
-impl Prefixes {
+impl Localization {
     /// Set the help prefix.
     pub const fn with_help(mut self, help: &'static str) -> Self {
         self.help = help;
@@ -489,18 +491,30 @@ impl Prefixes {
         self.note = note;
         self
     }
+
+    /// Set the stacktrace prefix.
+    pub const fn with_stacktrace(mut self, stacktrace: &'static str) -> Self {
+        self.stacktrace = stacktrace;
+        self
+    }
+
+    /// Set the unknown tag.
+    pub const fn with_unknown(mut self, unknown: &'static str) -> Self {
+        self.unknown = unknown;
+        self
+    }
 }
 
 /// A type representing a stack frame in a stack trace.
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct StackFrame<S: Span> {
     function_name: String,
-    location: S,
+    location: Option<S>,
 }
 
 impl<S: Span> StackFrame<S> {
     /// Create a new stack frame.
-    pub fn new(function_name: String, location: S) -> Self {
+    pub fn new(function_name: String, location: Option<S>) -> Self {
         Self {
             function_name,
             location,
@@ -510,7 +524,7 @@ impl<S: Span> StackFrame<S> {
 
 impl From<(String, Range<usize>)> for StackFrame<Range<usize>> {
     fn from((function_name, location): (String, Range<usize>)) -> Self {
-        Self::new(function_name, location)
+        Self::new(function_name, Some(location))
     }
 }
 
@@ -526,7 +540,7 @@ pub struct Config {
     tab_width: usize,
     char_set: CharSet,
     index_type: IndexType,
-    prefixes: Prefixes,
+    prefixes: Localization,
 }
 
 impl Config {
@@ -598,7 +612,7 @@ impl Config {
     /// What prefixes should be used for help and note messages?
     ///     
     /// /// If unspecified, this defaults to `"Help"` and `"Note"`.
-    pub const fn with_prefixes(mut self, prefixes: Prefixes) -> Self {
+    pub const fn with_prefixes(mut self, prefixes: Localization) -> Self {
         self.prefixes = prefixes;
         self
     }
@@ -659,7 +673,7 @@ impl Config {
             tab_width: 4,
             char_set: CharSet::Unicode,
             index_type: IndexType::Char,
-            prefixes: Prefixes::new(),
+            prefixes: Localization::new(),
         }
     }
 }
