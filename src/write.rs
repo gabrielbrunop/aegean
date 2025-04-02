@@ -1,8 +1,6 @@
 use std::io;
 use std::ops::Range;
 
-use yansi::Paint;
-
 use crate::{IndexType, LabelDisplay};
 
 use super::draw::{self, StreamAwareFmt, StreamType};
@@ -182,7 +180,7 @@ impl<S: Span> Report<'_, S> {
         writeln!(
             w,
             "{} {}",
-            id.fg(kind_color, s).bold(),
+            id.fg(kind_color, s).bold(self.config.bold(), s),
             Show(self.msg.as_ref())
         )?;
 
@@ -509,8 +507,7 @@ impl<S: Span> Report<'_, S> {
 
                 let margin_label = multi_labels_with_message
                     .iter()
-                    .enumerate()
-                    .filter_map(|(_i, label)| {
+                    .filter_map(|label| {
                         let is_start = line.span().contains(&label.char_span.start);
                         let is_end = line.span().contains(&label.last_offset());
                         if is_start {
@@ -537,8 +534,7 @@ impl<S: Span> Report<'_, S> {
                 // Generate a list of labels for this line, along with their label columns
                 let mut line_labels = multi_labels_with_message
                     .iter()
-                    .enumerate()
-                    .filter_map(|(_i, label)| {
+                    .filter_map(|label| {
                         let is_start = line.span().contains(&label.char_span.start);
                         let is_end = line.span().contains(&label.last_offset());
                         if is_start
@@ -862,6 +858,69 @@ impl<S: Span> Report<'_, S> {
 
             let is_final_group = group_idx + 1 == groups_len;
 
+            // Stacktrace
+            if is_final_group && !self.stacktrace.is_empty() {
+                // Empty line
+                if !self.config.compact {
+                    write_margin(&mut w, 0, false, false, true, Some((0, false)), &[], &None)?;
+                    writeln!(w)?;
+                }
+
+                for frame in self.stacktrace.iter() {
+                    let file_name_and_ref = {
+                        let location = if src_id == frame.location.source() {
+                            frame.location.start()
+                        } else {
+                            labels[0].char_span.start
+                        };
+
+                        let line_and_col = match self.config.index_type {
+                            IndexType::Char => src.get_offset_line(location),
+                            IndexType::Byte => {
+                                src.get_byte_line(location).map(|(line_obj, idx, col)| {
+                                    let line_text = src.get_line_text(line_obj).unwrap();
+                                    let col = line_text[..col.min(line_text.len())].chars().count();
+
+                                    (line_obj, idx, col)
+                                })
+                            }
+                        };
+
+                        let (line_no, col_no) = line_and_col
+                            .map(|(_, idx, col)| {
+                                (
+                                    format!("{}", idx + 1 + src.display_line_offset()),
+                                    format!("{}", col + 1),
+                                )
+                            })
+                            .unwrap_or_else(|| ('?'.to_string(), '?'.to_string()));
+
+                        let line_ref = format!("{}:{}:{}", src_name, line_no, col_no);
+
+                        format!(
+                            "{} {} {}",
+                            draw.lbox.fg(self.config.margin_color(), s),
+                            line_ref,
+                            draw.rbox.fg(self.config.margin_color(), s),
+                        )
+                    };
+
+                    write_margin(&mut w, 0, false, false, true, Some((0, false)), &[], &None)?;
+
+                    writeln!(
+                        w,
+                        "{} {} {}",
+                        self.config
+                            .prefixes
+                            .stacktrace
+                            .fg(self.config.frame_color(), s)
+                            .bold(self.config.bold(), s),
+                        frame.function_name,
+                        file_name_and_ref,
+                    )?;
+                }
+            }
+
             // Help
             if is_final_group {
                 for (i, help) in self.help.iter().enumerate() {
@@ -882,20 +941,20 @@ impl<S: Span> Report<'_, S> {
                             writeln!(
                                 w,
                                 "{}: {}",
-                                draw::StreamAwareFmt::fg(help_prefix, self.config.note_color(), s)
-                                    .bold(),
+                                help_prefix
+                                    .fg(self.config.note_color(), s)
+                                    .bold(self.config.bold(), s),
                                 line
                             )?;
                         } else {
                             writeln!(
                                 w,
                                 "{}: {}",
-                                draw::StreamAwareFmt::fg(
-                                    self.config.prefixes.help,
-                                    self.config.note_color(),
-                                    s
-                                )
-                                .bold(),
+                                self.config
+                                    .prefixes
+                                    .help
+                                    .fg(self.config.note_color(), s)
+                                    .bold(self.config.bold(), s),
                                 line
                             )?;
                         }
@@ -927,20 +986,20 @@ impl<S: Span> Report<'_, S> {
                             writeln!(
                                 w,
                                 "{}: {}",
-                                draw::StreamAwareFmt::fg(note_prefix, self.config.note_color(), s)
-                                    .bold(),
+                                note_prefix
+                                    .fg(self.config.note_color(), s)
+                                    .bold(self.config.bold(), s),
                                 line
                             )?;
                         } else {
                             writeln!(
                                 w,
                                 "{}: {}",
-                                draw::StreamAwareFmt::fg(
-                                    self.config.prefixes.note,
-                                    self.config.note_color(),
-                                    s
-                                )
-                                .bold(),
+                                self.config
+                                    .prefixes
+                                    .note
+                                    .fg(self.config.note_color(), s)
+                                    .bold(self.config.bold(), s),
                                 line
                             )?;
                         }
@@ -1603,5 +1662,35 @@ mod tests {
            |         It has no resemblance.
         ---'
         "###)
+    }
+
+    #[test]
+    fn stacktrace() {
+        let source = "apple == orange;";
+        let msg = remove_trailing(
+            Report::build(ReportKind::Error, 0..0)
+                .with_config(no_color_and_ascii())
+                .with_message("can't compare apples with oranges")
+                .with_label(Label::new(0..15).with_message("This is a strange comparison"))
+                .with_stacktrace(vec![
+                    ("outer_fn".to_string(), (0..10)).into(),
+                    ("inner_fn".to_string(), (10..15)).into(),
+                ])
+                .finish()
+                .write_to_string(Source::from(source)),
+        );
+
+        assert_snapshot!(msg, @r"
+        Error: can't compare apples with oranges
+           ,-[ <unknown>:1:1 ]
+           |
+         1 | apple == orange;
+           | ^^^^^^^|^^^^^^^
+           |        `--------- This is a strange comparison
+           |
+           | In outer_fn [ <unknown>:1:1 ]
+           | In inner_fn [ <unknown>:1:11 ]
+        ---'
+        ")
     }
 }

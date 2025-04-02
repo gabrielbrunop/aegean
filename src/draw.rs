@@ -1,6 +1,7 @@
 use super::*;
 use yansi::Paint;
 
+#[allow(dead_code)]
 pub struct Characters {
     pub hbar: char,
     pub vbar: char,
@@ -132,6 +133,15 @@ pub trait StreamAwareFmt: Sized {
             Background(self, None)
         }
     }
+
+    /// Make this value bold, when color is enabled for the specified stream.
+    fn bold(self, bold: bool, stream: StreamType) -> Bold<Self> {
+        if Self::color_enabled_for(stream) {
+            Bold(self, bold)
+        } else {
+            Bold(self, false)
+        }
+    }
 }
 
 impl<T: fmt::Display> StreamAwareFmt for T {}
@@ -167,6 +177,18 @@ pub trait Fmt: Sized {
             Background(self, color.into())
         }
     }
+
+    /// Make this value bold.
+    fn bold(self, bold: bool) -> Bold<Self>
+    where
+        Self: fmt::Display,
+    {
+        if cfg!(feature = "concolor") {
+            StreamAwareFmt::bold(self, bold, StreamType::Stderr)
+        } else {
+            Bold(self, true)
+        }
+    }
 }
 
 impl<T: fmt::Display> Fmt for T {}
@@ -185,6 +207,11 @@ pub trait StdoutFmt: StreamAwareFmt {
     /// Give this value the specified background colour, when color is enabled for `stdout`.
     fn bg<C: Into<Option<Color>>>(self, color: C) -> Background<Self> {
         StreamAwareFmt::bg(self, color, StreamType::Stdout)
+    }
+
+    /// Give this value the specified weight, when color is enabled for `stdout`.
+    fn bold(self) -> Self {
+        StreamAwareFmt::bold(self, StreamType::Stdout)
     }
 }
 
@@ -215,6 +242,18 @@ impl<T: fmt::Display> fmt::Display for Background<T> {
     }
 }
 
+#[derive(Copy, Clone, Debug)]
+pub struct Bold<T>(T, bool);
+impl<T: fmt::Display> fmt::Display for Bold<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.1 {
+            write!(f, "{}", Paint::new(&self.0).bold())
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+
 /// A type that can generate distinct 8-bit colors.
 pub struct ColorGenerator {
     state: [u16; 3],
@@ -234,7 +273,7 @@ impl ColorGenerator {
     pub fn from_state(state: [u16; 3], min_brightness: f32) -> Self {
         Self {
             state,
-            min_brightness: min_brightness.max(0.0).min(1.0),
+            min_brightness: min_brightness.clamp(0.0, 1.0),
         }
     }
 

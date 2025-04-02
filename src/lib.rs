@@ -205,6 +205,7 @@ pub struct Report<'a, S: Span = Range<usize>> {
     help: Vec<String>,
     span: S,
     labels: Vec<Label<S>>,
+    stacktrace: Vec<StackFrame<S>>,
     config: Config,
 }
 
@@ -222,6 +223,7 @@ impl<S: Span> Report<'_, S> {
             span,
             labels: Vec::new(),
             config: Config::default(),
+            stacktrace: vec![],
         }
     }
 
@@ -287,6 +289,7 @@ pub struct ReportBuilder<'a, S: Span> {
     span: S,
     labels: Vec<Label<S>>,
     config: Config,
+    stacktrace: Vec<StackFrame<S>>,
 }
 
 impl<'a, S: Span> ReportBuilder<'a, S> {
@@ -385,6 +388,12 @@ impl<'a, S: Span> ReportBuilder<'a, S> {
         self
     }
 
+    /// Add a stack trace to the report.
+    pub fn with_stacktrace(mut self, stacktrace: Vec<StackFrame<S>>) -> Self {
+        self.stacktrace = stacktrace;
+        self
+    }
+
     /// Finish building the [`Report`].
     pub fn finish(self) -> Report<'a, S> {
         Report {
@@ -396,6 +405,7 @@ impl<'a, S: Span> ReportBuilder<'a, S> {
             span: self.span,
             labels: self.labels,
             config: self.config,
+            stacktrace: self.stacktrace,
         }
     }
 }
@@ -447,6 +457,7 @@ pub enum IndexType {
 pub struct Prefixes {
     help: &'static str,
     note: &'static str,
+    stacktrace: &'static str,
 }
 
 impl Prefixes {
@@ -455,6 +466,7 @@ impl Prefixes {
         Prefixes {
             help: "Help",
             note: "Note",
+            stacktrace: "In",
         }
     }
 }
@@ -476,6 +488,29 @@ impl Prefixes {
     pub const fn with_note(mut self, note: &'static str) -> Self {
         self.note = note;
         self
+    }
+}
+
+/// A type representing a stack frame in a stack trace.
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub struct StackFrame<S: Span> {
+    function_name: String,
+    location: S,
+}
+
+impl<S: Span> StackFrame<S> {
+    /// Create a new stack frame.
+    pub fn new(function_name: String, location: S) -> Self {
+        Self {
+            function_name,
+            location,
+        }
+    }
+}
+
+impl From<(String, Range<usize>)> for StackFrame<Range<usize>> {
+    fn from((function_name, location): (String, Range<usize>)) -> Self {
+        Self::new(function_name, location)
     }
 }
 
@@ -589,8 +624,14 @@ impl Config {
     fn note_color(&self) -> Option<Color> {
         Some(Color::Fixed(115)).filter(|_| self.color)
     }
+    fn frame_color(&self) -> Option<Color> {
+        Some(Color::Red).filter(|_| self.color)
+    }
     fn filter_color(&self, color: Option<Color>) -> Option<Color> {
         color.filter(|_| self.color)
+    }
+    fn bold(&self) -> bool {
+        self.color
     }
 
     // Find the character that should be drawn and the number of times it should be drawn for each char

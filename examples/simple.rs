@@ -5,6 +5,10 @@ fn main() {
         .with_message("Incompatible types")
         .with_label(Label::new(32..33).with_message("This is of type Nat"))
         .with_label(Label::new(42..45).with_message("This is of type Str"))
+        .with_stacktrace(vec![
+            ("outer_fn".to_string(), (32..33)).into(),
+            ("inner_fn".to_string(), (42..45)).into(),
+        ])
         .finish()
         .print(Source::from(include_str!("sample.tao")))
         .unwrap();
