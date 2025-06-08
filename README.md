@@ -1,21 +1,25 @@
-# Ariadne
+# aegean
 
-[![crates.io](https://img.shields.io/crates/v/ariadne.svg)](https://crates.io/crates/ariadne)
-[![crates.io](https://docs.rs/ariadne/badge.svg)](https://docs.rs/ariadne)
-[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](https://github.com/zesterer/ariadne)
-![actions-badge](https://github.com/zesterer/ariadne/workflows/Rust/badge.svg?branch=main)
+[![crates.io](https://img.shields.io/crates/v/aegean.svg)](https://crates.io/crates/aegean)
+[![crates.io](https://docs.rs/aegean/badge.svg)](https://docs.rs/aegean)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](https://github.com/gabrielbrunop/aegean)
+![actions-badge](https://github.com/gabrielbrunop/aegean/workflows/Rust/badge.svg?branch=main)
 
 A fancy compiler diagnostics crate.
 
+## About
+
+`aegean` is a fork of [ariadne](https://github.com/zesterer/ariadne) with additional features and improvements.
+
 ## Example
 
-<a href = "https://github.com/zesterer/ariadne/blob/main/examples/multiline.rs">
-<img src="https://raw.githubusercontent.com/zesterer/ariadne/main/misc/example.png" alt="Ariadne supports arbitrary multi-line spans"/>
+<a href = "https://github.com/gabrielbrunop/aegean/blob/main/examples/multiline.rs">
+<img src="https://raw.githubusercontent.com/gabrielbrunop/aegean/main/misc/example.png" alt="aegean supports arbitrary multi-line spans"/>
 </a>
 
 ```rust,ignore
 fn main() {
-    use ariadne::{Color, ColorGenerator, Fmt, Label, Report, ReportKind, Source};
+    use aegean::{Color, ColorGenerator, Fmt, Label, Report, ReportKind, Source};
 
     let mut colors = ColorGenerator::new();
 
@@ -55,23 +59,18 @@ fn main() {
 }
 ```
 
-See [`examples/`](https://github.com/zesterer/ariadne/tree/main/examples) for more examples.
+See [`examples/`](https://github.com/gabrielbrunop/aegean/tree/main/examples) for more examples.
 
 ## Usage
 
 For each error you wish to report:
-* Call `Report::build()` to create a `ReportBuilder`.
-* Assign whatever details are appropriate to the error using the various
+
+- Call `Report::build()` to create a `ReportBuilder`.
+- Assign whatever details are appropriate to the error using the various
   methods, and then call the `finish` method to get a `Report`.
-* For each `Report`, call `print` or `eprint` to write the report
+- For each `Report`, call `print` or `eprint` to write the report
   directly to `stdout` or `stderr`. Alternately, you can use
   `write` to send the report to any other `Write` destination (such as a file).
-
-## About
-
-`ariadne` is a sister project of [`chumsky`](https://github.com/zesterer/chumsky/). Neither are dependent on
-one-another, but I'm working on both simultaneously and like to think that their features complement each other. If
-you're thinking of using `ariadne` to process your compiler's output, why not try using `chumsky` to process its input?
 
 ## Features
 
@@ -95,39 +94,23 @@ you're thinking of using `ariadne` to process your compiler's output, why not tr
 - `"auto-color"` enables `concolor`'s `"auto"` feature for automatic color control
 
 `concolor`'s features should be defined by the top-level binary crate, but without any features enabled `concolor` does
-nothing. If `ariadne` is your only dependency using `concolor` then `"auto-color"` provides a convenience to enable
+nothing. If `aegean` is your only dependency using `concolor` then `"auto-color"` provides a convenience to enable
 `concolor`'s automatic color support detection, i.e. this:
+
 ```TOML
 [dependencies]
-ariadne = { version = "...", features = ["auto-color"] }
+aegean = { version = "...", features = ["auto-color"] }
 ```
+
 is equivalent to this:
+
 ```TOML
 [dependencies]
-ariadne = { version = "...", features = ["concolor"] }
+aegean = { version = "...", features = ["concolor"] }
 concolor = { version = "...", features = ["auto"] }
 ```
-
-## Planned Features
-
-- Improved layout planning & space usage
-- Non-ANSI terminal support
-- More accessibility options (screenreader-friendly mode, textured highlighting as an alternative to color, etc.)
-- More color options
-- Better support for layout restrictions (maximum terminal width, for example)
 
 ## Stability
 
 The API (should) follow [semver](https://www.semver.org/). However, this does not apply to the layout of final error
-messages. Minor tweaks to the internal layout heuristics can often result in the exact format of error messages changing
-with labels moving slightly. If you experience a change in layout that you believe to be a regression (either the change
-is incorrect, or makes your diagnostics harder to read) then please open an issue.
-
-## Credit
-
-Thanks to:
-
-- `@brendanzab` for their beautiful [`codespan`](https://github.com/brendanzab/codespan) crate that inspired me to try
-  pushing the envelope of error diagnostics.
-
-- `@estebank` for showing innumerable people just how good compiler diagnostics can be through their work on Rust.
+messages. Minor tweaks to the internal layout heuristics can often result in the exact format of error messages changing with labels moving slightly. If you experience a change in layout that you believe to be a regression (either the change is incorrect, or makes your diagnostics harder to read) then please open an issue.
